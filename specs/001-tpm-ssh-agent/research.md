@@ -61,8 +61,9 @@
 
 ## R7. SSHSIG namespace for the log line
 
-- **Decision**: if the data starts with the 6-byte magic `SSHSIG`, parse `uint32 version`,
-  `string namespace` and log the namespace with non-printable characters escaped and the length
+- **Decision**: if the data starts with the 6-byte magic `SSHSIG`, parse
+  `string namespace` (the signed blob has no version field; that lives in the outer
+  signature) and log the namespace with non-printable characters escaped and the length
   capped at 64. Otherwise log `namespace=-`. (PROTOCOL.sshsig, "Signed Data".)
 
 ## R8. Testing without a TPM

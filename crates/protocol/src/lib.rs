@@ -4,8 +4,10 @@
 
 #![forbid(unsafe_code)]
 
+pub mod agent;
 pub mod base64;
 pub mod ecdsa;
 pub mod log;
 pub mod message;
+pub mod sshsig;
 pub mod wire;
