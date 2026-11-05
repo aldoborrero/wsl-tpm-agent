@@ -16,8 +16,8 @@ const MAGIC: &[u8] = b"SSHSIG";
 /// Longest namespace logged, in input bytes; longer ones are cut and end in `...`.
 pub const MAX_LOGGED: usize = 64;
 
-/// The namespace, made safe for a log line: printable ASCII is kept, any other byte becomes
-/// `\xNN`. `None` if `data` is not a well-formed SSHSIG blob.
+/// The namespace, made safe for a log line: printable ASCII is kept, any other byte (and `\`
+/// itself, so the output reads back unambiguously) becomes `\xNN`. `None` if `data` is not a well-formed SSHSIG blob.
 pub fn namespace(data: &[u8]) -> Option<String> {
     let mut r = Reader::new(data.strip_prefix(MAGIC)?);
     let ns = r.string().ok()?;
@@ -28,7 +28,7 @@ pub fn namespace(data: &[u8]) -> Option<String> {
 
     let mut out = String::new();
     for &b in ns.iter().take(MAX_LOGGED) {
-        if b.is_ascii_graphic() || b == b' ' {
+        if (b.is_ascii_graphic() || b == b' ') && b != b'\\' {
             out.push(b as char);
         } else {
             out.push_str(&format!("\\x{b:02x}"));
@@ -76,6 +76,12 @@ mod tests {
             namespace(&blob(b"a\nb\x1b\xff")),
             Some("a\\x0ab\\x1b\\xff".into())
         );
+    }
+
+    #[test]
+    fn escapes_backslashes_so_escapes_stay_unambiguous() {
+        assert_eq!(namespace(&blob(b"a\\x0ab")), Some("a\\x5cx0ab".into()));
+        assert_ne!(namespace(&blob(b"a\\x0ab")), namespace(&blob(b"a\nb")));
     }
 
     #[test]
