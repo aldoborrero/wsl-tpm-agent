@@ -73,14 +73,16 @@ fn name_option(args: &[String]) -> Result<Option<String>, String> {
     Ok(name)
 }
 
-/// 1 to 64 characters from `[A-Za-z0-9._-]`.
+/// 1 to 64 characters from `[A-Za-z0-9._-]`, the first a letter or digit, so a name can never
+/// be read as an option (`--name --version`, `certutil -delkey -x`).
 pub fn validate_name(name: &str) -> Result<(), String> {
     let allowed = |c: char| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-');
-    if (1..=64).contains(&name.len()) && name.chars().all(allowed) {
+    let starts_alnum = name.starts_with(|c: char| c.is_ascii_alphanumeric());
+    if (1..=64).contains(&name.len()) && starts_alnum && name.chars().all(allowed) {
         Ok(())
     } else {
         Err(format!(
-            "invalid key name {name:?}: use 1 to 64 characters from A-Z a-z 0-9 . _ -"
+            "invalid key name {name:?}: use 1 to 64 characters from A-Z a-z 0-9 . _ -, starting with a letter or digit"
         ))
     }
 }
@@ -144,6 +146,8 @@ mod tests {
         assert!(p(&["keygen", "--name", ""]).is_err());
         assert!(p(&["keygen", "--name", "a b"]).is_err());
         assert!(p(&["agent", "--name", "..\\x"]).is_err());
+        assert!(p(&["keygen", "--name", "--version"]).is_err());
+        assert!(p(&["agent", "--name", "-x"]).is_err());
     }
 
     #[test]
@@ -152,7 +156,7 @@ mod tests {
         assert_eq!(validate_name(&"a".repeat(64)), Ok(()));
         assert!(validate_name(&"a".repeat(65)).is_err());
         assert!(validate_name("").is_err());
-        for bad in ["a/b", "a\\b", "ñ", "a\0", "a:b", "a b"] {
+        for bad in ["-x", ".x", "_x", "a/b", "a\\b", "ñ", "a\0", "a:b", "a b"] {
             assert!(validate_name(bad).is_err(), "{bad:?}");
         }
     }
