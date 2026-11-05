@@ -145,6 +145,14 @@ Queda sin hacer, menor: cada firma vuelve a listar y exportar todas las claves `
 escrituras; con `keyName` y la clave sin crear, cada petición deja un warning; `debug = true`
 sobrescribe `WSLENV` en vez de añadir al final.
 
+## Skills de Rust
+
+Instaladas con `npx skills add … -a claude-code --copy` (las mismas fuentes que
+`windows-fido-bridge`, fijadas en `skills-lock.json`): rust-best-practices, rust-ffi, rust-review,
+rust-testing y unsafe-checker, en `.claude/skills/`. Las revisé antes de añadirlas: no traen
+comandos sospechosos. `rust-review` solo funciona entera con el plugin `rust-review` de Trail of
+Bits instalado, porque llama a sus scripts, prompts y subagentes, que `npx skills` no copia.
+
 ## Commits
 
 No hay ningún commit todavía. Al intentar el primero firmado, la firma no respondió en 90 s
@@ -153,7 +161,7 @@ el clasificador de permisos de esta sesión bloqueó `git -c commit.gpgsign=fals
 contra tu CLAUDE.md ("keep signing enabled"), y no lo esquivé.
 
 Para no perder el historial en pasos pequeños guardé cada commit previsto como un árbol de git
-con su mensaje en `.git/pending-commits` (23 entradas, la última con la documentación de la review).
+con su mensaje en `.git/pending-commits` (24 entradas, la última con las skills de Rust).
 `.git/replay-pending.sh` los convierte en commits sobre `main`, del más antiguo al más nuevo, con
 tu identidad:
 
@@ -163,7 +171,7 @@ bash .git/replay-pending.sh --unsigned  # la excepción de GOAL.md; luego re-fir
 ```
 
 Antes de usarlo conviene arreglar el agente colgado (o reiniciar `ssh-agent`/`ssh-agent-mux`)
-para que gfh pueda firmar. Si se usa `--unsigned`, quedan sin firmar los 23 commits; para
+para que gfh pueda firmar. Si se usa `--unsigned`, quedan sin firmar los 24 commits; para
 re-firmarlos después: `git rebase --root --exec 'git commit --amend --no-edit -S'`.
 
 Ningún commit lleva trailers de IA ni "Generated with".
