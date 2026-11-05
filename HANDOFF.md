@@ -26,7 +26,7 @@ Lo único pendiente son los commits (ver "Commits": están preparados, no creado
 
 | Criterio | Resultado |
 |---|---|
-| `cargo test` | verde: 68 tests (7 CLI, 47 unitarios del protocolo, 6 del agente, 7 de clientes hostiles, 1 de punta a punta con OpenSSH) |
+| `cargo test` | verde: 74 tests (7 CLI, 48 unitarios del protocolo, 7 del agente, 7 de clientes hostiles, 4 propiedades con `proptest`, 1 de punta a punta con OpenSSH) |
 | `cargo clippy -D warnings` | verde para Linux y para `x86_64-pc-windows-gnu` |
 | `nix fmt` | verde, sin cambios |
 | `nix flake check` | verde: `tests` (el test de OpenSSH también corre en el sandbox), `clippy`, `clippy-windows`, `home-module`, `pkgs-formatter-check`, `pkgs-wsl-tpm-agent`, `devshell-default` |
@@ -145,6 +145,27 @@ Queda sin hacer, menor: cada firma vuelve a listar y exportar todas las claves `
 escrituras; con `keyName` y la clave sin crear, cada petición deja un warning; `debug = true`
 sobrescribe `WSLENV` en vez de añadir al final.
 
+## `unsafe-checker` y tests de propiedades (2026-11-05)
+
+`unsafe-checker` sobre `ncrypt.rs`: los 10 bloques `unsafe` llevan su `// SAFETY:` y lo que dice
+es cierto; handles y buffers se liberan una vez con la función correcta; ningún buffer se
+desborda. Encontró una carrera: el agente elegía la clave por el blob y luego firmaba abriéndola
+por nombre, así que una clave borrada y recreada entre medias firmaba en su lugar. Ahora
+`Backend::sign` recibe la `Key` entera, y `ncrypt.rs` abre la clave una vez, compara su punto con
+el listado y firma con ese mismo handle. Test: `key_replaced_after_matching_is_not_used` (falló
+antes del cambio). Probado en sirius con `just try-sign`: firma en 0,17 s y verifica.
+
+Queda dicho, sin cambiar: `Handle` es `Send + Sync` porque `NCRYPT_HANDLE` es un `usize`; da igual
+con un solo hilo, pero habría que revisarlo si un día hay hilos.
+
+TLA+ no compensa aquí: no hay estado compartido entre peticiones ni entre procesos, salvo esa
+carrera, que ya cubre el test. En su lugar, `crates/protocol/tests/props.rs` con `proptest`:
+tramas bien formadas reciben una respuesta 5, 12 o 14 cada una; tramas con longitudes que mienten
+solo reciben esas respuestas; longitudes 0 o mayores de 256 KiB cierran la conexión tras leer 4
+bytes; cualquier `r‖s` da mpints canónicos. Pasaron a la primera, así que rompí a propósito el
+padding del mpint, el límite de longitud 0 y la respuesta a tipos desconocidos: cada mutación hizo
+fallar su propiedad. `cargo-fuzz` no lo añadí: necesita nightly y quedaría fuera del CI.
+
 ## Skills de Rust
 
 Instaladas con `npx skills add … -a claude-code --copy` (las mismas fuentes que
@@ -161,7 +182,7 @@ el clasificador de permisos de esta sesión bloqueó `git -c commit.gpgsign=fals
 contra tu CLAUDE.md ("keep signing enabled"), y no lo esquivé.
 
 Para no perder el historial en pasos pequeños guardé cada commit previsto como un árbol de git
-con su mensaje en `.git/pending-commits` (24 entradas, la última con las skills de Rust).
+con su mensaje en `.git/pending-commits` (27 entradas, la última con la documentación de los tests de propiedades).
 `.git/replay-pending.sh` los convierte en commits sobre `main`, del más antiguo al más nuevo, con
 tu identidad:
 
@@ -171,7 +192,7 @@ bash .git/replay-pending.sh --unsigned  # la excepción de GOAL.md; luego re-fir
 ```
 
 Antes de usarlo conviene arreglar el agente colgado (o reiniciar `ssh-agent`/`ssh-agent-mux`)
-para que gfh pueda firmar. Si se usa `--unsigned`, quedan sin firmar los 24 commits; para
+para que gfh pueda firmar. Si se usa `--unsigned`, quedan sin firmar los 27 commits; para
 re-firmarlos después: `git rebase --root --exec 'git commit --amend --no-edit -S'`.
 
 Ningún commit lleva trailers de IA ni "Generated with".

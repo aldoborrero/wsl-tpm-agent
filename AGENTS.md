@@ -8,7 +8,7 @@ stdin/stdout; a systemd user socket with `Accept=yes` starts it through WSL inte
 
 | Path | What |
 | --- | --- |
-| `crates/protocol/` | lib `wta-protocol`, `#![forbid(unsafe_code)]`: `wire.rs` (bounded reader, 256 KiB frames), `message.rs` (requests 11/13, responses 5/12/14), `ecdsa.rs` (P-256 blob, OpenSSH line, P1363 → mpint signature, `BCRYPT_ECCPUBLIC_BLOB` parsing), `base64.rs`, `sshsig.rs` (namespace for the log), `agent.rs` (`Backend` trait, serve loop), `log.rs`; `tests/` = fake TPM (`common/`), serve loop, hostile clients, OpenSSH end to end |
+| `crates/protocol/` | lib `wta-protocol`, `#![forbid(unsafe_code)]`: `wire.rs` (bounded reader, 256 KiB frames), `message.rs` (requests 11/13, responses 5/12/14), `ecdsa.rs` (P-256 blob, OpenSSH line, P1363 → mpint signature, `BCRYPT_ECCPUBLIC_BLOB` parsing), `base64.rs`, `sshsig.rs` (namespace for the log), `agent.rs` (`Backend` trait, serve loop), `log.rs`; `tests/` = fake TPM (`common/`), serve loop, hostile clients, properties (`proptest`), OpenSSH end to end |
 | `crates/wsl-tpm-agent/` | bin `wsl-tpm-agent(.exe)`: `cli.rs` (arguments, key name rules, tested on Linux), `ncrypt.rs` (Windows only, the only `unsafe`), `main.rs` |
 | `nix/` | blueprint prefix: `lib/` (toolchain, crane args, Windows cross env), `packages/wsl-tpm-agent/`, `checks/` (`tests` with openssh, `clippy`, `clippy-windows`, `home-module`), `modules/home/wsl-tpm-agent.nix` (`services.wsl-tpm-agent`), `devshell.nix`, `formatter.nix` |
 | `specs/001-tpm-ssh-agent/`, `.specify/` | Spec Kit: spec (with clarifications), plan, research, contracts, tasks; constitution in `.specify/memory/` |
@@ -35,6 +35,8 @@ stdin/stdout; a systemd user socket with `Accept=yes` starts it through WSL inte
   close the connection before the body is read.
 - NCrypt calls pass `NCRYPT_SILENT_FLAG` wherever the API accepts it. `keygen` never passes
   `NCRYPT_OVERWRITE_KEY_FLAG`.
+- `Backend::sign` gets the matched `Key` and must fail if the key under that name no longer
+  has that public point; `ncrypt.rs` checks and signs through one handle.
 - Signatures leave as `string "ecdsa-sha2-nistp256"`, `string (mpint r ‖ mpint s)`; the tests
   cover high-bit and leading-zero scalars and verify with OpenSSH.
 - The executable never opens a listener. In the unit, `StandardError=journal` is required:
