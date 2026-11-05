@@ -1,0 +1,12 @@
+[package]
+name = "wsl-tpm-agent"
+description = "ssh-agent that signs with an ECDSA P-256 key in the Windows TPM, served over stdin/stdout"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true
