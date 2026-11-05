@@ -80,7 +80,9 @@ cover, and seen to fail first.
 - [ ] T032 `AGENTS.md` (+ `CLAUDE.md` symlink)
 - [ ] T033 Run every acceptance command: `cargo test`, `cargo clippy -D warnings`, `nix fmt`,
   `nix flake check`, `nix build .#wsl-tpm-agent`
-- [ ] T034 Hardware test on sirius (quickstart.md), then delete `gfh-test`
+- [ ] T034 Hardware test on sirius (quickstart.md): time one signature (SC-004), check with
+  `certutil -csp "Microsoft Platform Crypto Provider" -key gfh-test` that the key is not
+  exportable, then delete `gfh-test`
 - [ ] T035 `HANDOFF.md`: state, hardware results, decisions, unsigned commits, nix-system steps
 
 ## Dependencies

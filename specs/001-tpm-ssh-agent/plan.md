@@ -73,7 +73,8 @@ crates/
 │   ├── src/agent.rs          # Backend trait, serve loop
 │   ├── src/log.rs            # stderr logger
 │   └── tests/
-│       ├── fake.rs           # software P-256 Backend (shared by the tests)
+│       ├── common/mod.rs     # software P-256 Backend (shared by the tests)
+│       ├── agent.rs          # serve loop with the fake backend
 │       ├── hostile.rs        # garbage, lying lengths, oversized, add-key
 │       └── openssh.rs        # ssh-add -L, ssh-keygen -Y sign/verify over a Unix socket
 └── wsl-tpm-agent/            # bin wsl-tpm-agent(.exe)
