@@ -23,8 +23,10 @@ pub trait Backend {
     /// offered or used without restarting anything.
     fn keys(&mut self) -> io::Result<Vec<Key>>;
 
-    /// Signs a SHA-256 digest with the named key; returns the P1363 signature (`r‖s`, 64 bytes).
-    fn sign(&mut self, name: &str, digest: &[u8; 32]) -> io::Result<Vec<u8>>;
+    /// Signs a SHA-256 digest with the key named `key.name`; returns the P1363 signature (`r‖s`,
+    /// 64 bytes). Fails if that key's public point is no longer `key.point`, so a key replaced
+    /// after [`Backend::keys`] listed it never signs in its place.
+    fn sign(&mut self, key: &Key, digest: &[u8; 32]) -> io::Result<Vec<u8>>;
 }
 
 /// Serves requests until `input` ends. A framing error (length 0 or above
@@ -90,7 +92,7 @@ fn sign(backend: &mut impl Backend, key_blob: &[u8], data: &[u8]) -> io::Result<
         .find(|k| ecdsa::public_blob(&k.point) == key_blob)
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "key not held by this agent"))?;
     let digest: [u8; 32] = Sha256::digest(data).into();
-    let p1363 = backend.sign(&key.name, &digest)?;
+    let p1363 = backend.sign(&key, &digest)?;
     let sig = ecdsa::ssh_signature(&p1363).ok_or_else(|| {
         io::Error::new(
             io::ErrorKind::InvalidData,

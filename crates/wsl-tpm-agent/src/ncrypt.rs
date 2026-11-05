@@ -174,9 +174,16 @@ impl Provider {
         }
     }
 
-    /// Signs a SHA-256 digest with key `name`; returns P1363 `r‖s`.
-    pub fn sign(&self, name: &str, digest: &[u8; 32]) -> io::Result<Vec<u8>> {
+    /// Signs a SHA-256 digest with key `name`, through the same handle whose public point was
+    /// checked against `expected`; returns P1363 `r‖s`.
+    pub fn sign(&self, name: &str, expected: &Point, digest: &[u8; 32]) -> io::Result<Vec<u8>> {
         let key = self.open_key(name)?;
+        if public_point(&key)? != *expected {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!("key {name} was replaced after it was listed"),
+            ));
+        }
         let mut sig = [0u8; 2 * FIELD_LEN];
         let mut len = 0u32;
         // SAFETY: `key` is open; no padding info for ECDSA; `digest` is 32 readable bytes and
@@ -277,7 +284,7 @@ impl Backend for Tpm {
         Ok(keys)
     }
 
-    fn sign(&mut self, name: &str, digest: &[u8; 32]) -> io::Result<Vec<u8>> {
-        self.provider.sign(name, digest)
+    fn sign(&mut self, key: &Key, digest: &[u8; 32]) -> io::Result<Vec<u8>> {
+        self.provider.sign(&key.name, &key.point, digest)
     }
 }

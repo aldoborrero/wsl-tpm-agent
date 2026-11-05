@@ -17,6 +17,9 @@ pub struct FakeTpm {
     pub refuse: bool,
     /// Digests passed to `sign`, to check that the agent hashes what it should.
     pub signed: Vec<[u8; 32]>,
+    /// When set, `keys` replaces the first key with a new one under the same name right after
+    /// listing it, as if it were deleted and recreated between listing and signing.
+    pub replace_after_listing: bool,
 }
 
 impl FakeTpm {
@@ -35,6 +38,7 @@ impl FakeTpm {
             keys,
             refuse: false,
             signed: Vec::new(),
+            replace_after_listing: false,
         }
     }
 
@@ -65,26 +69,30 @@ pub fn point_of(vk: &VerifyingKey) -> Point {
 
 impl Backend for FakeTpm {
     fn keys(&mut self) -> io::Result<Vec<Key>> {
-        Ok(self
+        let keys = self
             .keys
             .iter()
             .map(|(name, sk)| Key {
                 name: name.clone(),
                 point: point_of(sk.verifying_key()),
             })
-            .collect())
+            .collect();
+        if self.replace_after_listing {
+            self.keys[0].1 = SigningKey::from_slice(&[0x22; 32]).unwrap();
+        }
+        Ok(keys)
     }
 
-    fn sign(&mut self, name: &str, digest: &[u8; 32]) -> io::Result<Vec<u8>> {
+    fn sign(&mut self, key: &Key, digest: &[u8; 32]) -> io::Result<Vec<u8>> {
         if self.refuse {
             return Err(io::Error::other("NTE_SILENT_CONTEXT"));
         }
-        self.signed.push(*digest);
         let (_, sk) = self
             .keys
             .iter()
-            .find(|(n, _)| n == name)
+            .find(|(n, sk)| *n == key.name && point_of(sk.verifying_key()) == key.point)
             .ok_or_else(|| io::Error::other("no such key"))?;
+        self.signed.push(*digest);
         let sig: Signature = sk.sign_prehash(digest).map_err(io::Error::other)?;
         Ok(sig.to_bytes().to_vec())
     }

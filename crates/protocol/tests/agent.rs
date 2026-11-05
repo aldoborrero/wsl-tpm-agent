@@ -91,6 +91,18 @@ fn unknown_key_gets_failure() {
     assert!(tpm.signed.is_empty());
 }
 
+/// A key deleted and recreated under the same name after the agent matched it must not sign:
+/// the signature would come from a key the client did not ask for.
+#[test]
+fn key_replaced_after_matching_is_not_used() {
+    let mut tpm = FakeTpm::new(&["gfh-a"]);
+    let blob = tpm.blob("gfh-a");
+    tpm.replace_after_listing = true;
+    let reply = handle(&sign_request(&blob, b"data"), &mut tpm);
+    assert_eq!(reply, [SSH_AGENT_FAILURE]);
+    assert!(tpm.signed.is_empty());
+}
+
 #[test]
 fn backend_refusal_gets_failure() {
     let mut tpm = FakeTpm::new(&["gfh-a"]);
