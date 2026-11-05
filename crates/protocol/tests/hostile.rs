@@ -41,7 +41,15 @@ fn key_management_requests_get_failure_and_change_nothing() {
         .string(b"evil");
     let add = add.into_vec();
     // add, remove, remove all, add smartcard key, lock, add constrained, extension
-    let bodies: Vec<&[u8]> = vec![&add, &[18, 0, 0, 0, 0], &[19], &[20], &[22, 0, 0, 0, 0], &[25], &[27]];
+    let bodies: Vec<&[u8]> = vec![
+        &add,
+        &[18, 0, 0, 0, 0],
+        &[19],
+        &[20],
+        &[22, 0, 0, 0, 0],
+        &[25],
+        &[27],
+    ];
     let (result, replies, tpm) = run(&frames(&bodies));
     result.unwrap();
     assert_eq!(replies.len(), bodies.len());
@@ -49,7 +57,11 @@ fn key_management_requests_get_failure_and_change_nothing() {
     assert_eq!(tpm.keys.len(), 1);
 
     let (_, replies, _) = run(&frames(&[&[SSH_AGENTC_REQUEST_IDENTITIES]]));
-    assert_eq!(&replies[0][1..5], &1u32.to_be_bytes(), "still exactly one identity");
+    assert_eq!(
+        &replies[0][1..5],
+        &1u32.to_be_bytes(),
+        "still exactly one identity"
+    );
 }
 
 #[test]

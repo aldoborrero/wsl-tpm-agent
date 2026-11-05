@@ -47,10 +47,7 @@ mod tests {
 
     fn blob(ns: &[u8]) -> Vec<u8> {
         let mut w = Writer::new();
-        w.string(ns)
-            .string(b"")
-            .string(b"sha512")
-            .string(&[7; 64]);
+        w.string(ns).string(b"").string(b"sha512").string(&[7; 64]);
         [MAGIC.to_vec(), w.into_vec()].concat()
     }
 

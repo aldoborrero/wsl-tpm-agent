@@ -10,7 +10,10 @@ use wta_protocol::wire::{Reader, Writer, read_frame, write_frame};
 
 fn sign_request(key: &[u8], data: &[u8]) -> Vec<u8> {
     let mut w = Writer::new();
-    w.u8(SSH_AGENTC_SIGN_REQUEST).string(key).string(data).u32(0);
+    w.u8(SSH_AGENTC_SIGN_REQUEST)
+        .string(key)
+        .string(data)
+        .u32(0);
     w.into_vec()
 }
 
@@ -81,7 +84,10 @@ fn signatures_verify_for_high_bit_and_leading_zero_scalars() {
 fn unknown_key_gets_failure() {
     let mut tpm = FakeTpm::new(&["gfh-a"]);
     let other = FakeTpm::new(&["x", "gfh-other"]).blob("gfh-other");
-    assert_eq!(handle(&sign_request(&other, b"d"), &mut tpm), [SSH_AGENT_FAILURE]);
+    assert_eq!(
+        handle(&sign_request(&other, b"d"), &mut tpm),
+        [SSH_AGENT_FAILURE]
+    );
     assert!(tpm.signed.is_empty());
 }
 
@@ -90,7 +96,10 @@ fn backend_refusal_gets_failure() {
     let mut tpm = FakeTpm::new(&["gfh-a"]);
     tpm.refuse = true;
     let blob = tpm.blob("gfh-a");
-    assert_eq!(handle(&sign_request(&blob, b"d"), &mut tpm), [SSH_AGENT_FAILURE]);
+    assert_eq!(
+        handle(&sign_request(&blob, b"d"), &mut tpm),
+        [SSH_AGENT_FAILURE]
+    );
 }
 
 #[test]
@@ -104,8 +113,14 @@ fn serve_answers_each_frame_until_eof() {
     serve(&mut &input[..], &mut output, &mut tpm).unwrap();
 
     let mut out = &output[..];
-    assert_eq!(read_frame(&mut out).unwrap().unwrap()[0], SSH_AGENT_IDENTITIES_ANSWER);
-    assert_eq!(read_frame(&mut out).unwrap().unwrap()[0], SSH_AGENT_SIGN_RESPONSE);
+    assert_eq!(
+        read_frame(&mut out).unwrap().unwrap()[0],
+        SSH_AGENT_IDENTITIES_ANSWER
+    );
+    assert_eq!(
+        read_frame(&mut out).unwrap().unwrap()[0],
+        SSH_AGENT_SIGN_RESPONSE
+    );
     assert_eq!(read_frame(&mut out).unwrap().unwrap(), [SSH_AGENT_FAILURE]);
     assert_eq!(read_frame(&mut out).unwrap(), None);
 }

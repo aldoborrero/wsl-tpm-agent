@@ -97,7 +97,16 @@ fn ssh_add_lists_and_ssh_keygen_signs_and_verifies() {
         &socket,
         "ssh-keygen",
         &[
-            "-Y", "verify", "-f", "allowed_signers", "-I", "test", "-n", "git", "-s", "msg.sig",
+            "-Y",
+            "verify",
+            "-f",
+            "allowed_signers",
+            "-I",
+            "test",
+            "-n",
+            "git",
+            "-s",
+            "msg.sig",
         ],
         Some(&dir.join("msg")),
     );

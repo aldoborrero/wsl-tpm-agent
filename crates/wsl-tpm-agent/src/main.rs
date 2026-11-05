@@ -81,5 +81,8 @@ fn agent(_: Option<String>) -> io::Result<()> {
 
 #[cfg(not(windows))]
 fn only_windows() -> io::Error {
-    io::Error::new(io::ErrorKind::Unsupported, "this executable only runs on Windows")
+    io::Error::new(
+        io::ErrorKind::Unsupported,
+        "this executable only runs on Windows",
+    )
 }

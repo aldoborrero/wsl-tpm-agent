@@ -139,7 +139,8 @@ pub fn read_frame(r: &mut impl Read) -> io::Result<Option<Vec<u8>>> {
 
 /// Writes `body` as one frame and flushes.
 pub fn write_frame(w: &mut impl Write, body: &[u8]) -> io::Result<()> {
-    let len = u32::try_from(body.len()).map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))?;
+    let len =
+        u32::try_from(body.len()).map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))?;
     w.write_all(&len.to_be_bytes())?;
     w.write_all(body)?;
     w.flush()

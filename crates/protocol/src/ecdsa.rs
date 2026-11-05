@@ -43,7 +43,10 @@ pub fn public_blob(point: &Point) -> Vec<u8> {
 
 /// `ecdsa-sha2-nistp256 <base64 blob> <comment>`, as in an OpenSSH `.pub` file.
 pub fn openssh_line(point: &Point, comment: &str) -> String {
-    format!("{KEY_TYPE} {} {comment}", base64::encode(&public_blob(point)))
+    format!(
+        "{KEY_TYPE} {} {comment}",
+        base64::encode(&public_blob(point))
+    )
 }
 
 /// The contents of an SSH `mpint` holding the unsigned big-endian `n` (RFC 4251 §5): no leading

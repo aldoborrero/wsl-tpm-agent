@@ -13,8 +13,8 @@ use windows_sys::Win32::Foundation::{
     NTE_SILENT_CONTEXT, NTE_USER_CANCELLED,
 };
 use windows_sys::Win32::Security::Cryptography::{
-    BCRYPT_ECCPUBLIC_BLOB, BCRYPT_ECDSA_P256_ALGORITHM, MS_PLATFORM_CRYPTO_PROVIDER,
-    NCRYPT_HANDLE, NCRYPT_SILENT_FLAG, NCryptCreatePersistedKey, NCryptEnumKeys, NCryptExportKey,
+    BCRYPT_ECCPUBLIC_BLOB, BCRYPT_ECDSA_P256_ALGORITHM, MS_PLATFORM_CRYPTO_PROVIDER, NCRYPT_HANDLE,
+    NCRYPT_SILENT_FLAG, NCryptCreatePersistedKey, NCryptEnumKeys, NCryptExportKey,
     NCryptFinalizeKey, NCryptFreeBuffer, NCryptFreeObject, NCryptKeyName, NCryptOpenKey,
     NCryptOpenStorageProvider, NCryptSignHash,
 };
@@ -154,7 +154,13 @@ impl Provider {
             // a NULL scope lists the current user's keys; `state.0` is NULL on the first call
             // and afterwards whatever the previous call stored there.
             let status = unsafe {
-                NCryptEnumKeys(self.0.0, ptr::null(), &mut item, &mut state.0, NCRYPT_SILENT_FLAG)
+                NCryptEnumKeys(
+                    self.0.0,
+                    ptr::null(),
+                    &mut item,
+                    &mut state.0,
+                    NCRYPT_SILENT_FLAG,
+                )
             };
             if status == NTE_NO_MORE_ITEMS {
                 return Ok(names);

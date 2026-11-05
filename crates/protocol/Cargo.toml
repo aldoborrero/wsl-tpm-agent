@@ -10,7 +10,10 @@ repository.workspace = true
 sha2 = "0.10"
 
 [dev-dependencies]
-p256 = { version = "0.13", default-features = false, features = ["ecdsa", "std"] }
+p256 = { version = "0.13", default-features = false, features = [
+  "ecdsa",
+  "std",
+] }
 
 [lints]
 workspace = true
