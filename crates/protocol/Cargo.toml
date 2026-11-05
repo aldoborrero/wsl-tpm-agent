@@ -1,0 +1,16 @@
+[package]
+name = "wta-protocol"
+description = "ssh-agent wire format, ECDSA encoding and the serve loop, independent of the TPM"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+sha2 = "0.10"
+
+[dev-dependencies]
+p256 = { version = "0.13", default-features = false, features = ["ecdsa", "std"] }
+
+[lints]
+workspace = true
