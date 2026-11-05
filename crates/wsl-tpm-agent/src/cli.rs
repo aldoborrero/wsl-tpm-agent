@@ -16,7 +16,7 @@ usage: wsl-tpm-agent.exe keygen --name <name>
   agent   serve the ssh-agent protocol on stdin/stdout for one connection;
           offers the key <name>, or every gfh-* key without --name
 
-Names: 1 to 64 characters from A-Z a-z 0-9 . _ -";
+Names: 1 to 64 characters from A-Z a-z 0-9 . _ -, starting with a letter or digit";
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Command {

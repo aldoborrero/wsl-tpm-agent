@@ -54,7 +54,8 @@ The module adds two user units:
 
 - `tpm-agent.socket` listens on `%t/tpm-agent.sock` (mode `0600`) with `Accept=yes`.
 - `tpm-agent@.service` runs `wsl-tpm-agent.exe agent` for each connection, with the socket as
-  stdin and stdout and stderr sent to the journal.
+  stdin and stdout and stderr sent to the journal. A connection lasts at most 60 s, and
+  instances are unloaded when they end, failed or not.
 
 Requirements: WSL interop enabled (the default), Windows with a TPM 2.0 that the Platform Crypto
 Provider can use, and OpenSSH on the WSL side.
@@ -75,7 +76,7 @@ wsl-tpm-agent.exe keygen --name gfh-sirius > ~/.ssh/sirius_tpm.pub
 ```
 
 It prints one OpenSSH public key line, which you can add to `allowed_signers` and to GitHub as a
-signing key. Names may use letters, digits, `.`, `_` and `-`, up to 64 characters. Without
+signing key. Names may use letters, digits, `.`, `_` and `-`, up to 64 characters, and must start with a letter or digit. Without
 `keyName`, the agent offers only keys whose names start with `gfh-`, so other keys in the
 provider stay hidden.
 
@@ -133,8 +134,9 @@ certutil.exe -user -csp "Microsoft Platform Crypto Provider" -delkey gfh-sirius
 - Only ECDSA P-256 keys in the Platform Crypto Provider. No RSA, no keys from other providers.
 - Each connection starts a Windows process: one signature takes about 0.15 to 0.2 s on the
   machine it was tested on.
-- A client that sends a broken frame leaves a failed `tpm-agent@…` unit behind; clear them with
-  `systemctl --user reset-failed 'tpm-agent@*'`.
+- A connection open for more than 60 s is closed. Requests take a fraction of a second and
+  OpenSSH closes the agent connection after authentication, so only a client that never finishes
+  hits this limit.
 - There is no Hyper-V socket, TCP listener, Windows service or remote key management, and none is
   planned.
 

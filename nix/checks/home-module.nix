@@ -48,5 +48,8 @@ assert
   == plain "${exe} agent --name gfh-sirius";
 # A key name that starts with a symbol could be read as an option.
 assert
-  !(builtins.tryEval (eval { services.wsl-tpm-agent.keyName = "-x"; }).systemd.user.services."tpm-agent@".Service.ExecStart).success;
+  !(builtins.tryEval
+    (eval { services.wsl-tpm-agent.keyName = "-x"; })
+    .systemd.user.services."tpm-agent@".Service.ExecStart
+  ).success;
 pkgs.runCommand "home-module-check" { } "touch $out"

@@ -2,7 +2,8 @@
 
 ## Key name
 
-- 1 to 64 characters from `[A-Za-z0-9._-]`. Validated by `keygen` and `agent --name` before any
+- 1 to 64 characters from `[A-Za-z0-9._-]`, the first a letter or digit, so a name is never
+  taken for an option. Validated by `keygen` and `agent --name` before any
   NCrypt call.
 - `agent` without `--name` lists only names starting with `gfh-`.
 

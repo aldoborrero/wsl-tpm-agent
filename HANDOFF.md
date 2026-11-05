@@ -78,7 +78,7 @@ Tomadas con el documento de diseño sin esperar respuesta (también en la secci�
 
 - `agent` sin `--name` ofrece las claves P-256 del provider cuyo nombre empieza por `gfh-`
   (diseño: "con las claves `gfh-*`"). Con `--name` solo esa. `keygen` acepta cualquier nombre de
-  1 a 64 caracteres `[A-Za-z0-9._-]` y avisa si no lleva el prefijo.
+  1 a 64 caracteres `[A-Za-z0-9._-]` que empiece por letra o dígito, y avisa si no lleva el prefijo.
 - Módulo de home-manager, no de NixOS: el diseño dice "Módulo NixOS", GOAL.md dice
   home-manager, y las unidades son de usuario.
 - `SSH_AGENTC_EXTENSION` (27) recibe `FAILURE` como cualquier otro tipo.
@@ -112,9 +112,8 @@ Tomadas con el documento de diseño sin esperar respuesta (también en la secci�
 - La API de NCrypt no contradijo el diseño en nada que afecte a la firma.
 - `nix fmt` (mdformat) reformateó `GOAL.md` (7 bytes, espacios en blanco) en el primer
   formateo. Está en el repo tal como quedó.
-- Un cliente que manda una trama rota deja una unidad `tpm-agent@…` en estado failed (el proceso
-  sale con 1, como dice el contrato). Se limpian con `systemctl --user reset-failed 'tpm-agent@*'`.
-  Si molesta, se puede cambiar a salir con 0 en errores del cliente.
+- Un cliente que manda una trama rota hace que el proceso salga con 1, como dice el contrato. La
+  unidad lleva `CollectMode=inactive-or-failed`, así que esa instancia no se queda en failed.
 - En tu shell, `ssh-add` es un alias que fija `SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/ssh-agent`, así que
   `SSH_AUTH_SOCK=… ssh-add -L` no habla con el socket del TPM. Para probar hay que usar
   `command ssh-add` (o `timeout … ssh-add`).
@@ -124,6 +123,28 @@ Tomadas con el documento de diseño sin esperar respuesta (también en la secci�
   no es mío y no he tocado; otro de un intento mío de commit (gfh 2449733 / ssh-add 2449785)
   sigue ahí porque no se me permitió matarlo.
 
+## Review adversaria (2026-11-05)
+
+Una review de `crates/`, `nix/` y `justfile`, y el cruce con los fallos de
+`~/Dev/research/WinCryptSSHAgent-review.md` y `PKCS11SSHAgent-review.md`. Ningún fallo de esos
+informes se repite aquí, y la review no encontró errores de protocolo ni de memoria. Arreglado,
+con su test:
+
+- Nombres que empiezan por `-`, `.` o `_`: se rechazan (`cli.rs` y el `strMatching` del módulo).
+  Antes `keygen --name --version` creaba una clave llamada `--version`.
+- `\` en el namespace del log se escapa como `\x5c`, para que el escape no sea ambiguo.
+- `CollectMode=inactive-or-failed` y `RuntimeMaxSec=60s` en `tpm-agent@.service`. Sin límite,
+  64 conexiones calladas dejaban el socket sin servicio. Probado en sirius: la trama rota no deja
+  unidad failed y la conexión callada se corta a los 60 s sin dejar ningún `.exe` vivo.
+- `just try-units` se niega si el socket ya está instalado en otra ruta (home-manager tiene
+  prioridad y la prueba no probaría nada); `just stop-units` solo toca las unidades
+  transitorias y borra el fichero del socket; `try-sign` pone el nombre entre comillas.
+
+Queda sin hacer, menor: cada firma vuelve a listar y exportar todas las claves `gfh-*`;
+`NTE_BUFFER_TOO_SMALL` se traduce a "not a P-256 key" en cualquier llamada; `write_frame` hace dos
+escrituras; con `keyName` y la clave sin crear, cada petición deja un warning; `debug = true`
+sobrescribe `WSLENV` en vez de añadir al final.
+
 ## Commits
 
 No hay ningún commit todavía. Al intentar el primero firmado, la firma no respondió en 90 s
@@ -132,7 +153,7 @@ el clasificador de permisos de esta sesión bloqueó `git -c commit.gpgsign=fals
 contra tu CLAUDE.md ("keep signing enabled"), y no lo esquivé.
 
 Para no perder el historial en pasos pequeños guardé cada commit previsto como un árbol de git
-con su mensaje en `.git/pending-commits` (18 entradas, la última con la documentación final).
+con su mensaje en `.git/pending-commits` (23 entradas, la última con la documentación de la review).
 `.git/replay-pending.sh` los convierte en commits sobre `main`, del más antiguo al más nuevo, con
 tu identidad:
 
@@ -142,7 +163,7 @@ bash .git/replay-pending.sh --unsigned  # la excepción de GOAL.md; luego re-fir
 ```
 
 Antes de usarlo conviene arreglar el agente colgado (o reiniciar `ssh-agent`/`ssh-agent-mux`)
-para que gfh pueda firmar. Si se usa `--unsigned`, quedan sin firmar los 18 commits; para
+para que gfh pueda firmar. Si se usa `--unsigned`, quedan sin firmar los 23 commits; para
 re-firmarlos después: `git rebase --root --exec 'git commit --amend --no-edit -S'`.
 
 Ningún commit lleva trailers de IA ni "Generated with".

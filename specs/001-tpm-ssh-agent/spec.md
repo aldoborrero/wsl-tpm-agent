@@ -24,7 +24,7 @@ also listed in `HANDOFF.md`.
 - Q: Without `--name`, which keys does `agent` list? → A: every P-256 key in the Platform Crypto
   Provider whose name starts with `gfh-` (design doc: "con las claves `gfh-*` del provider").
   With `--name <n>` it lists only `<n>`. `keygen` accepts any name made of letters, digits, `.`,
-  `_` and `-` (1 to 64 characters) and warns when it lacks the `gfh-` prefix.
+  `_` and `-` (1 to 64 characters, the first a letter or digit) and warns when it lacks the `gfh-` prefix.
 - Q: The design doc says "Módulo NixOS", GOAL.md says home-manager. Which one? → A: home-manager
   (`homeModules.wsl-tpm-agent`, option `services.wsl-tpm-agent`). The units are per-user and
   GOAL.md is the newer, explicit instruction.
