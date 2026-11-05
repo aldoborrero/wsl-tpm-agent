@@ -1,1 +1,3 @@
+mod cli;
+
 fn main() {}
