@@ -14,6 +14,29 @@ that cannot be copied off the machine. WSL has no TPM device of its own, so the 
 the Windows TPM and be reached from WSL. Two existing Windows agents were reviewed and rejected
 (see `README.md`, "Why not an existing agent").
 
+## Clarifications
+
+### Session 2026-11-05
+
+Answered from the design document without waiting for the user, as GOAL.md asks; each decision is
+also listed in `HANDOFF.md`.
+
+- Q: Without `--name`, which keys does `agent` list? → A: every P-256 key in the Platform Crypto
+  Provider whose name starts with `gfh-` (design doc: "con las claves `gfh-*` del provider").
+  With `--name <n>` it lists only `<n>`. `keygen` accepts any name made of letters, digits, `.`,
+  `_` and `-` (1 to 64 characters) and warns when it lacks the `gfh-` prefix.
+- Q: The design doc says "Módulo NixOS", GOAL.md says home-manager. Which one? → A: home-manager
+  (`homeModules.wsl-tpm-agent`, option `services.wsl-tpm-agent`). The units are per-user and
+  GOAL.md is the newer, explicit instruction.
+- Q: What does the agent do with `SSH_AGENTC_EXTENSION` (27), e.g. the `query` extension? → A:
+  `FAILURE`, like every type other than 11 and 13. OpenSSH treats that as "extension not
+  supported".
+- Q: What about the `flags` field of `SIGN_REQUEST`? → A: it is read and ignored. Its defined bits
+  only select RSA hashes; `ecdsa-sha2-nistp256` always uses SHA-256.
+- Q: Oversized or empty frame: `FAILURE` or close? → A: close the connection without reading the
+  body. Answering `FAILURE` would leave the stream out of sync; OpenSSH's own agent also drops the
+  connection here. Messages that fit but are malformed get `FAILURE` and the connection stays open.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Sign with the TPM key from WSL (Priority: P1)
@@ -98,8 +121,9 @@ executable uses) and check each answer.
 - A `SIGN_REQUEST` with trailing bytes after the flags is rejected with `FAILURE`.
 - The TPM refuses to sign (policy changed so a dialog would be needed, TPM locked out): the agent
   answers `FAILURE` and logs the reason; no window appears.
-- `keygen` with an empty name or a name that does not start with `gfh-` while `agent` runs without
-  `--name`: see FR-004 and the clarifications.
+- `keygen` with an empty name or characters outside `[A-Za-z0-9._-]` fails before touching the
+  TPM. A name without the `gfh-` prefix is created with a warning, and `agent` lists it only when
+  started with `--name`.
 - P-256 signature scalars with the high bit set or with leading zero bytes must still produce
   valid SSH signatures.
 
@@ -118,7 +142,7 @@ executable uses) and check each answer.
   `gfh-`. The comment of each identity is the key name.
 - **FR-005**: `SIGN_REQUEST` for a listed key MUST be answered with `SIGN_RESPONSE` holding an
   `ecdsa-sha2-nistp256` signature over SHA-256 of the data, with `r` and `s` encoded as SSH
-  `mpint`s.
+  `mpint`s. The request's `flags` are ignored.
 - **FR-006**: Signing MUST NOT show any UI; if the key would need UI, signing fails.
 - **FR-007**: Every other message type MUST be answered with `FAILURE`. Keys can never be added,
   removed or locked through the agent.
@@ -128,7 +152,8 @@ executable uses) and check each answer.
 - **FR-009**: Each signature MUST log one line to stderr (and so to the journal) with the key name,
   the data size and, when the data is an SSHSIG blob, its namespace. Signed data MUST NOT be
   logged.
-- **FR-010**: The flake MUST export a home-manager module that installs a user socket unit
+- **FR-010**: The flake MUST export a home-manager module (`homeModules.wsl-tpm-agent`) that
+  installs a user socket unit
   `tpm-agent.socket` listening on `$XDG_RUNTIME_DIR/tpm-agent.sock` with `Accept=yes`, starting
   `wsl-tpm-agent.exe agent` through WSL interop for each connection, with stderr going to the
   journal.
