@@ -38,7 +38,15 @@ assert plain (toString service.ExecStart) == plain "${exe} agent";
 assert service.StandardInput == "socket";
 assert service.StandardOutput == "socket";
 assert service.StandardError == "journal";
+# Failed connections (a broken frame, a client gone before the reply) are unloaded, not kept.
+assert cfg.systemd.user.services."tpm-agent@".Unit.CollectMode == "inactive-or-failed";
+# A client that connects and never speaks cannot hold a Windows process (and a connection slot)
+# forever.
+assert service.RuntimeMaxSec == "60s";
 assert
   plain (toString named.systemd.user.services."tpm-agent@".Service.ExecStart)
   == plain "${exe} agent --name gfh-sirius";
+# A key name that starts with a symbol could be read as an option.
+assert
+  !(builtins.tryEval (eval { services.wsl-tpm-agent.keyName = "-x"; }).systemd.user.services."tpm-agent@".Service.ExecStart).success;
 pkgs.runCommand "home-module-check" { } "touch $out"

@@ -20,7 +20,7 @@ in
     };
 
     keyName = lib.mkOption {
-      type = lib.types.nullOr (lib.types.strMatching "[A-Za-z0-9._-]{1,64}");
+      type = lib.types.nullOr (lib.types.strMatching "[A-Za-z0-9][A-Za-z0-9._-]{0,63}");
       default = null;
       example = "gfh-sirius";
       description = "Offer only this TPM key. When null, every `gfh-*` P-256 key is offered.";
@@ -44,7 +44,12 @@ in
     };
 
     systemd.user.services."tpm-agent@" = {
-      Unit.Description = "wsl-tpm-agent connection";
+      Unit = {
+        Description = "wsl-tpm-agent connection";
+        # Unload instances that failed (a broken frame, a client gone before the reply) instead of
+        # keeping them in `systemctl --user --failed`.
+        CollectMode = "inactive-or-failed";
+      };
       Service = {
         ExecStart = lib.escapeShellArgs (
           [
@@ -61,6 +66,10 @@ in
         # Not the default (inherit), which would follow stdout into the socket and corrupt the
         # protocol stream.
         StandardError = "journal";
+        # A request is answered in well under a second, and OpenSSH closes the agent connection
+        # after authentication. This only ends clients that connect and never finish, which would
+        # otherwise each hold a Windows process and one of the socket's 64 connection slots.
+        RuntimeMaxSec = "60s";
         # WSLENV forwards the variable to the Windows process.
         Environment = lib.optionals cfg.debug [
           "WSL_TPM_AGENT_DEBUG=1"
