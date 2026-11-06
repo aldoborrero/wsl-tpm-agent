@@ -6,7 +6,12 @@ An ssh-agent for WSL that signs with an ECDSA P-256 key kept in the Windows TPM.
 ssh-agent protocol on stdin/stdout. A systemd user socket in WSL starts one `.exe` per connection
 through interop, so `ssh-add`, `ssh-keygen -Y sign` and Git see an ordinary agent socket at
 `$XDG_RUNTIME_DIR/tpm-agent.sock`. Signing needs no touch, PIN or dialog, which makes it a fit for
-unattended commit signing by coding agents.
+unattended commit signing by coding agents. The commits in this repository are signed with it.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/signing-flow-dark.svg">
+  <img alt="A client in WSL connects to tpm-agent.sock; systemd starts wsl-tpm-agent.exe through interop, which signs through NCrypt with a P-256 key in the TPM; the signature goes back through the socket." src="docs/signing-flow.svg">
+</picture>
 
 ## Why it exists
 
@@ -76,9 +81,9 @@ wsl-tpm-agent.exe keygen --name gfh-sirius > ~/.ssh/sirius_tpm.pub
 ```
 
 It prints one OpenSSH public key line, which you can add to `allowed_signers` and to GitHub as a
-signing key. Names may use letters, digits, `.`, `_` and `-`, up to 64 characters, and must start with a letter or digit. Without
-`keyName`, the agent offers only keys whose names start with `gfh-`, so other keys in the
-provider stay hidden.
+signing key. Names may use letters, digits, `.`, `_` and `-`, up to 64 characters, and must
+start with a letter or digit. Without `keyName`, the agent offers only keys whose names start
+with `gfh-`, so other keys in the provider stay hidden.
 
 Point a client at the socket:
 
